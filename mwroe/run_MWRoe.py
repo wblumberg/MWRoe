@@ -59,7 +59,7 @@ if os.path.exists(out_filename):
     elif config['output_clobber'] == 1:
         print "Deleting file: " + output_fn
         os.system('rm ' + output_fn)
-    else config['output_clobber'] == 2:
+    elif config['output_clobber'] == 2:
         # Enter the APPEND MODE (yet to be coded)
         sys.exit()
 
