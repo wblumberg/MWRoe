@@ -54,11 +54,11 @@ out_filename = writer.constructOutputFN(oe_inputs['dt_times'], config)
 
 if os.path.exists(out_filename):
     if config['output_clobber'] == 0:
-        print "File: " + output_fn + ' already exists.\n Exiting MWRoe.'
+        print "File: " + out_filename + ' already exists.\n Exiting MWRoe.'
         sys.exit()
     elif config['output_clobber'] == 1:
-        print "Deleting file: " + output_fn
-        os.system('rm ' + output_fn)
+        print "Deleting file: " + out_filename
+        os.system('rm ' + out_filename)
     elif config['output_clobber'] == 2:
         # Enter the APPEND MODE (yet to be coded)
         sys.exit()
