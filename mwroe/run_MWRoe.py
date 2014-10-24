@@ -9,19 +9,39 @@ from pylab import *
 from datetime import datetime
 import helper
 
+try:
+    date = sys.argv[1]
+    vip = sys.argv[2]
+    prior = sys.argv[3]
+    btime = sys.argv[4]
+    etime = sys.argv[5]
+except:
+    print "Incorrect command line arguments!  Need the following:\n" + \
+          "python run_MWRoe.py YYYYMMDD <path to VIP> <path to prior> HHMM HHMM"
+    sys.exit()
+
 # TODO:
 # - create the ability to run in Append Mode (via command line)
 #   Append Mode will not take a date, but will grab the current date/time until 2359, look for the input data file
 #   and then find the existing output file and append to it.
 
 #config = reader.readVIP('../../../vips/theoretical/mwroe.vip.theoretical-VKnoOZ.txt')
-config = reader.readVIP('../../../vips/theoretical/mwroe.vip.theoretical-VK.txt')
-prior_filename = "../../../prior/Xa_Sa_datafile.55_levels.all_months.fkb.cdf"
-for c in np.sort(config.keys()):
-    print c + '= ' + str(config[c])
+#config = reader.readVIP('../../../vips/theoretical/mwroe.vip.theoretical-VK.txt')
+#prior_filename = "../../../prior/Xa_Sa_datafile.55_levels.all_months.fkb.cdf"
+#date = '20071001'
 
-date = '20071001'
-oe_inputs = reader.read_mwr_data(config, date, '0000', '0100')
+print "\n<----------- Running MWRoe ------------>"
+
+# Read in the VIP
+print "Using VIP file: " + vip
+config = reader.readVIP(vip)
+prior_filename = prior
+
+# Wipe the working directory clean
+os.system('rm ' + config['working_dir'] + '/*')
+
+# Read in the MWR data, the VCEIL data, and the prior
+oe_inputs = reader.read_mwr_data(config, date, btime, etime)
 cbh, cloud_flag = reader.read_vceil_data(config, date, oe_inputs['epoch_times'])
 Xa, Sa, alt, prior_info = reader.constructPrior(prior_filename, config)
 
@@ -32,6 +52,17 @@ monortm_freqs_files = writer.writeMonoRTMFreqs(oe_inputs, config)
 # Get the output filename.
 out_filename = writer.constructOutputFN(oe_inputs['dt_times'], config)
 
+if os.path.exists(out_filename):
+    if config['output_clobber'] == 0:
+        print "File: " + output_fn + ' already exists.\n Exiting MWRoe.'
+        sys.exit()
+    elif config['output_clobber'] == 1:
+        print "Deleting file: " + output_fn
+        os.system('rm ' + output_fn)
+    else config['output_clobber'] == 2:
+        # Enter the APPEND MODE (yet to be coded)
+        sys.exit()
+
 # Make the Se Matrix
 Se = np.matrix(np.diag(np.power(oe_inputs['tb_uncert'],2)))
 
@@ -39,7 +70,9 @@ Se = np.matrix(np.diag(np.power(oe_inputs['tb_uncert'],2)))
 x_c = Xa
 Xa = np.matrix(Xa).T
 
-print out_filename
+print "Retrieving MWR data for the date: " + datetime.strftime(oe_inputs['dt_times'][0], '%m/%d/%Y') + " for the time interval of " + \
+datetime.strftime(oe_inputs['dt_times'][0], '%H:%M:%S') + " UTC to " + datetime.strftime(oe_inputs['dt_times'][-1], '%H:%M:%S') \
++ " UTC."
 
 # Loop through the samples and retrieve each one.
 for samp_idx in range(len(oe_inputs['p'])):
