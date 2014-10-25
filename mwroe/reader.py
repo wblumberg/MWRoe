@@ -444,7 +444,7 @@ def read_vceil_data(config, date, times):
     cbh_flag = np.empty((len(times)))
 
     for i in range(len(times)):
-        epoch = date2num(times[i], 'seconds since 1970-01-01 00:00:00+00:00')
+        epoch = times[i]
         inner_idx = np.where((epoch_times > epoch - (inner_window * 60)) & (epoch_times < epoch + (inner_window * 60)))[0]
         outer_idx = np.where((epoch_times > epoch - (outer_window * 60)) & (epoch_times < epoch + (outer_window * 60)))[0]
         
