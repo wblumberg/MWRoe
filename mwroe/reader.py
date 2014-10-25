@@ -349,10 +349,8 @@ def readVIP(vip_fn):
     
     #Working directory for MonoRTM
     config_dict['working_dir'] = findVIPVariable('working_dir', vip_string).strip()
-
-    """ WILL NEED TO INCLUDE THIS IN THE VIP FILE """
-    config_dict['monortm_path'] = '/Users/blumberg/Projects/mwroe/monortm/monortm_v4.2'
-    config_dict['monortm_spectral_dat'] = '/Users/blumberg/Projects/mwroe/monortm/spectral_lines.dat'
+    config_dict['monortm_path'] = findVIPVariable('monortm_path', vip_string).strip()
+    config_dict['monortm_spectral_dat'] = findVIPVariable('monortm_spectral_dat', vip_string).strip()
 
     ############################################################################
     #
