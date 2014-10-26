@@ -8,6 +8,8 @@ fkbmwroe1blumC1.c1.20071001.001514.cdf - the MWRoe output file containing the re
 
 mwroe.vip.alloffsets.txt - the VIP file for running the retrieval on the test data
 
+Xa_Sa_datafile.55_levels.all_months.fkb.cdf - the prior file for running the retrieval.
+
 plotit.py - the script that makes the following images:
 
 20071001_TQ_height.png - the TEMP/WVMR profiles from the MWRoe retrieval
