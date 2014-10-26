@@ -9,6 +9,17 @@ from pylab import *
 from datetime import datetime
 import helper
 
+###################################################################
+#
+#       MWRoe - Microwave Radiometer optimal estimation
+#       Developed by Greg Blumberg (OU/CIMMS)
+#                    Dave Turner (NSSL)
+#                    Stephen Castleberry (OU)
+#
+#       Copyrighted 2014
+#
+###################################################################
+
 try:
     date = sys.argv[1]
     vip = sys.argv[2]
@@ -20,6 +31,7 @@ except:
           "python run_MWRoe.py YYYYMMDD <path to VIP> <path to prior> HHMM HHMM"
     sys.exit()
 
+os.system('rm -R run_mon*')
 # TODO:
 # - create the ability to run in Append Mode (via command line)
 #   Append Mode will not take a date, but will grab the current date/time until 2359, look for the input data file

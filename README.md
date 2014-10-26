@@ -1,6 +1,8 @@
 MWRoe
 =====
 
+Copyright 2014 Greg Blumberg
+
 Optimal estimation retrieval for microwave radiometers.
 
 This is code that performs the optimal estimation retrieval on microwave radiometerd data.
