@@ -2,9 +2,9 @@ This directory contains test data for MWRoe.
 
 It includes the following:
 
-fkbhatpromwrM1.c0.20071001.001514.cdf - a input HATPRO data file for October 10th, 2007
+fkbhatpromwrM1.c0.20071001.001514.cdf - an input HATPRO data file for October 10th, 2007
 fkbvceil25kM1.b1.20071001.000011.cdf - the ceilometer data for October 10th, 2007
-fkbmwroe1blumC1.c1.20071001.001514.cdf - the MWRoe output file containing the retieved values.
+fkbmwroe1blumC1.c1.20071001.001514.cdf - the MWRoe output file containing the retrieved values.
 
 mwroe.vip.alloffsets.txt - the VIP file for running the retrieval on the test data
 
