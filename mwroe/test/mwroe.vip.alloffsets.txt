@@ -1,0 +1,64 @@
+#
+# THE INPUT PARAMETER FILE FOR THE MWRoe RETRIEVAL
+#
+# Note that lines that start with a "#" are ignored
+# The keys on the left of the "=" are important, and will be matched by the same
+#    strings in the VIP structure.  The values on the right of the = are the values
+#
+tag     	= fkb	; String for temporary files / directories
+#
+# This section defines the data directories, file types, and more
+mwr_type       = 1		; 1 - HATPRO Level C0, 2 - Radiometrics
+mwr_path       = /raid/FRDD/Dave.Turner/data/fkb/mwr/netcdf_c0
+mwr_lat        = -1 		; MWR latitude  [degN]; will override info in MWR file if "alt" here is positive 
+mwr_lon        = -1		; MWR longitude [degE]; will override info in MWR file if "alt" here is positive 
+mwr_alt        = -1		; MWR altitude [m MSL]; will override info in MWR file if "alt" here is positive 
+mwr_calib_pres = 0, 1.0	; Intercept [mb] and slope to calib (newP = int + slope*obsP) 
+cbh_type        = 1		; 1 - VCEIL, 2 - Gregs ASOS/AWOS CBH file 
+cbh_path        = /raid/FRDD/Dave.Turner/data/fkb/vceil 
+cbh_window_in	=  20		; Inner full-width window size to look for cloud values [min] 
+cbh_window_out	= 180		; Outer full-width window size to look for cloud values [min] 
+cbh_default_ht  = 2.0		; Default CBH, if no CBH data found [km AGL] 
+output_rootname = fkbmwroe1blumC1.c1
+output_path     = /raid/FRDD/Dave.Turner/data/fkb/mwr/mwroe/final_dataset1_alloff
+output_clobber  = 0		; 0 - do not clobber any existing file, 1 - clobber it
+#
+# Information on the MonoRTM version to use
+monortm_exec        = /Users/daveturner/vip/src/monortm_v4.2/wrapper/monortm_v4
+monortm_path        = /Users/daveturner/vip/src/monortm_v4.2/monortm_v4.2
+monortm_spectral_dat= /Users/daveturner/vip/src/monortm_v4.2/spectral_lines.dat
+monortm_version     = 4.2
+working_dir         = /Users/gregblumberg/MWRoe/mwroe/tmp
+#
+# Options for the Jacobian
+jac_option      = 1	; 1 - Default Finite Diffs, 2 - 3calc method, 3 - deltaOD method
+jac_max_ht      = 8.0	; Maximum height to compute the Jacobian [km AGL]
+#
+# Options for running the retrieval
+max_iterations  = 10	; Maximum number of iterations to use (must be >= 1)
+first_guess     = 1	; 1 - use prior as FG, 2 - use Tsfc/lapse/constRH as first guess, 3 - use previous sample as FG
+zenith_noise    = 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 0.6, 0.6 ; 1-sigma uncertanities for zenith frequencies
+zenith_freqs    = 22.23, 23.04, 23.84, 25.44, 26.23, 27.84, 31.39, 51.25, 52.27, 53.86, 54.93, 56.65, 57.29, 58.0 ; Zenith frequenices
+freq_offset     = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.09, -0.189, -0.094, -0.153, 0.0, 0.0, 0.0 ; Used to offset the zenith frequencies on the MonoRTM and compensate for no band-pass filter
+tb_offset     = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ; Offset for the brightness temperatures
+off_zenith_freq = 56.65, 57.29, 58.0  ; Set as 0 if not using off-zenith data for retrieval
+off_zenith_elev = 42.0, 30.0, 19.2, 10.19 ; Set as 0 if not using off-zenith data for retrieval
+off_zenith_noise = 1.0, 0.6, 0.6 ; 1-sigma uncertantities for the off-zenith frequencies
+# Information on the a priori
+prior_lwp_mn   = 0.	; Mean LWP [g/m2]
+prior_lwp_sd   = 100.0	; 1-sigma uncertainty in LWP [g/m2]
+#
+# Global attributes for the output netCDF file (must start with "globatt_")
+globatt_Site = ARM Mobile Facility Black Forest, Germany (FKB)
+globatt_Instrument = HATPRO
+globatt_Dataset_contact = Greg Blumberg, OU/CIMMS, wblumberg@ou.edu
+# Prior data file settings (for use in the Python wrapper)
+prior_type = 0          ; 0 - sonde climatology, 1 - RUC/RAP, 2 - GFS
+prior_temporal = 3      ; Model run to use offset from the retrieval time (temporal window size)
+prior_spatial = 10      ; Number of grid points from center of spatial window to window boundaries
+prior_std_corr = 0      ; 0 - use raw model output for cov matrix,  1 - correct for underdispersed model profiles
+prior_sfc_std = 3       ; Inflation value for the surface level standard deviation
+prior_reg_hght = 3      ; Height in km where the prior standard deviation returns to the model standard deviation.
+prior_inf_type = 2      ; 0 - to apply inflation to T profile, 1 - the Q profile, 2 - both T/Q profiles
+model_prior_dir = ./prior_data/ ; Path where the model prior data will be put
+# END of FILE

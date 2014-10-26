@@ -1,0 +1,82 @@
+from pylab import *
+from matplotlib.dates import HourLocator, DateFormatter
+from netCDF4 import Dataset, num2date
+
+hour = HourLocator()
+d = Dataset("fkbmwroe1blumC1.c1.20071001.001514.cdf")
+temp = d.variables['temperature'][:]
+q = d.variables['waterVapor'][:]
+height = d.variables['height'][:]
+lwp = d.variables['lwp'][:]
+lwp_sigma = d.variables['sigma_lwp'][:]
+time = num2date(d.variables['base_time'][:] + d.variables['time_offset'][:], 'seconds since 1970-01-01 00:00:00+00:00')
+t_vres = d.variables['vres_temperature'][:]
+q_vres = d.variables['vres_waterVapor'][:]
+dfs = d.variables['dfs'][:]
+figure(figsize=(10,6))
+subplot(211)
+contourf(time, height, temp.T, np.arange(-10,34, 4), cmap=get_cmap("Reds"))
+cax = colorbar()
+cax.set_label("Temperature [C]")
+gca().xaxis.set_major_locator(hour)
+gca().xaxis.set_major_formatter(DateFormatter('%H'))
+ylim(0,4)
+ylabel("Height [km]")
+subplot(212)
+xlabel("Time [UTC]")
+ylabel("Height [km]")
+contourf(time, height, q.T, np.arange(0, 22, 1), cmap=get_cmap("gist_earth_r"))
+cax = colorbar()
+cax.set_label("WV Mixing Ratio [$g/kg$]")
+gca().xaxis.set_major_formatter(DateFormatter('%H'))
+gca().xaxis.set_major_locator(hour)
+tight_layout()
+ylim(0,4)
+savefig('20071001_TQ_height.png')
+clf()
+
+
+figure(figsize=(10,6))
+subplot(211)
+contourf(time, height, t_vres.T, np.arange(0 ,12, 1), cmap=get_cmap("Reds"))
+cax = colorbar()
+cax.set_label("TEMP VRES [km]")
+gca().xaxis.set_major_locator(hour)
+gca().xaxis.set_major_formatter(DateFormatter('%H'))
+ylim(0,4)
+ylabel("Height [km]")
+subplot(212)
+xlabel("Time [UTC]")
+ylabel("Height [km]")
+contourf(time, height, q_vres.T, np.arange(0, 8, 1), cmap=get_cmap("gist_earth_r"))
+cax = colorbar()
+cax.set_label("WVMR VRES [km]")
+gca().xaxis.set_major_formatter(DateFormatter('%H'))
+gca().xaxis.set_major_locator(hour)
+tight_layout()
+ylim(0,4)
+savefig('20071001_TQ_vres.png')
+clf()
+
+figure(figsize=(10,6))
+subplot(211)
+plot(time, dfs[:,1], label="TEMP DFS")
+plot(time, dfs[:,2], label="WVMR DFS")
+plot(time, dfs[:,3], label="LWP DFS")
+gca().xaxis.set_major_locator(hour)
+gca().xaxis.set_major_formatter(DateFormatter('%H'))
+ylim(0,4)
+ylabel("DFS")
+legend(loc='upper center', bbox_to_anchor=(0.5,1.0), ncol=3, fancybox=True, shadow=True)
+grid()
+subplot(212)
+xlabel("Time [UTC]")
+ylabel("LWP [$g/m^2$]")
+errorbar(time, lwp, yerr=lwp_sigma)
+grid()
+axhline(y=0, c='k')
+gca().xaxis.set_major_formatter(DateFormatter('%H'))
+gca().xaxis.set_major_locator(hour)
+tight_layout()
+savefig('20071001_dfs_lwp.png')
+clf()

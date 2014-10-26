@@ -323,13 +323,15 @@ def save_retrieval(out_filename, output, config_dict, prior_info, input_info):
     ###################################################
     # Set values to the variables in the netCDF file. #
     ###################################################
+    
+    dec_hour = helper.convert_time(int(datetime.strftime(toff_tm_ob)), 'hhmm')
 
     prof_time[ntimes:ntimes+1] = datetime.strftime(toff_tm_ob, '%H%M')
     base_time[:] = epoch_time
     time_offset[ntimes:ntimes+1] = ep_time_offset
     time_offset[len(time_offset) - 1] = ep_time_offset
-    hour[ntimes:ntimes+1] = 2#input_info['mtime_struct_mf_sev'] # THIS KEY DOESN'T EXIST IN THIS DICTIONARY
-    hour[len(hour) - 1] = 2#input_info['mtime_struct_mf_sev']
+    hour[ntimes:ntimes+1] = dec_hour
+    hour[len(hour) - 1] = dec_hour
     qc_flag[ntimes:ntimes+1] = qc_flag_val
     qc_flag[len(hour) - 1] = qc_flag_val
     rain_flag[ntimes:ntimes+1] = input_info['rainflags'][output['sample_index']]
