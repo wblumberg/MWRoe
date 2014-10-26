@@ -100,33 +100,35 @@ for samp_idx in range(len(oe_inputs['p'])):
     i = 0
 
     # Build arrays used to save the results from each iteration.
-    conv_norms = np.zeros(config['max_iterations'])
+    conv_norms = np.zeros(1 + config['max_iterations'])
     x_cs = np.zeros((config['max_iterations'], len(Xa)))
     Sops = np.zeros((config['max_iterations'], len(Xa), len(Xa)))
     As = np.zeros((config['max_iterations'], len(Xa), len(Xa)))
-    Fxs = np.zeros((config['max_iterations'], len(Y)))
-    RMSs = np.zeros(config['max_iterations'])
+    Fxs = np.zeros((1 + config['max_iterations'], len(Y)))
+    RMSs = np.zeros(1 + config['max_iterations'])
 
-    conv_norms[0] = 9.9999e5
-
+    conv_norms[i] = 9.9999e5
+    
     begin_dt = datetime.today()
     converged_flag = 0
+
+    # Make the Xa (since i == 0) netCDF file for the forward model calculation    
+    T_z = np.squeeze(x_c[:55])
+    Q_z = np.squeeze(x_c[55:55+55])
+    LWP_n = x_c[-1]
+    p, RH = helper.getProfilePresRH(alt, T_z, Q_z, sfc_pres)
+
+    # Make the F(Xa) calculation
+    sonde_file = config['working_dir'] + '/prior_comp.cdf'
+    writer.makeMonoRTMCDF(sonde_file, alt, T_z, p, RH)
+    os.environ['monortm_config'] = monortm_config_file
+    F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'], cloud_base, cloud_top)
+
+    # Store the RMS(F(Xa),Y)) and the F(Xa) for i = 0
+    RMSs[i] = helper.rms(np.asarray(Y).squeeze(), F_x)
+    Fxs[i] = np.asarray(F_x).squeeze()
+
     while i < config['max_iterations']:
-        # Make the Xc (or Xa if i == 0) netCDF file for the forward model calculation    
-        T_z = np.squeeze(x_c[:55])
-        Q_z = np.squeeze(x_c[55:55+55])
-        LWP_n = x_c[-1]
-        p, RH = helper.getProfilePresRH(alt, T_z, Q_z, sfc_pres)
-
-        # Make the F_x calculation
-        sonde_file = config['working_dir'] + '/prior_comp.cdf'
-        writer.makeMonoRTMCDF(sonde_file, alt, T_z, p, RH)
-        os.environ['monortm_config'] = monortm_config_file
-        F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'], cloud_base, cloud_top)
-
-        # Compute the RMS
-        RMSs[i] = helper.rms(np.asarray(Y).squeeze(), F_x)
-
         fmt_conv = '%.4E' % conv_norms[i]
         print "    iter is " + str(i+1) + ", di2m is " + fmt_conv + ", and RMS is " + str(np.round(RMSs[i],2))
         
@@ -135,7 +137,7 @@ for samp_idx in range(len(oe_inputs['p'])):
         K = np.matrix(K)
 
         # Fix the dimensions of the numpy matrices so the OE equation doesn't go fubar
-        F_x = np.matrix(F_x).T
+        F_x = np.matrix(Fxs[i]).T
         x_c = np.matrix(x_c).T
         
         # Solve the OE Equation:
@@ -147,24 +149,37 @@ for samp_idx in range(len(oe_inputs['p'])):
 
         # Solve for the convergence limit.
         conv_norm = np.asarray((x - x_c).T * inv_Sop * (x - x_c))[0] 
-
+         
+        # Make the retrieved solution the new guess x_c or (X_{i}.
+        x_c = x
+        
+        # Store the retrieval solution
         As[i] = np.asarray(A)
         Sops[i] = np.asarray(Sop)
         x_cs[i] = np.asarray(x_c).squeeze()
-        Fxs[i] = np.asarray(F_x).squeeze()
 
-        if conv_norm[0] < ( len(x) / 10. ): # Reached the strict converged criteria.
-            i = 10 # This will end the loop.
+        # Make the X_{i+1} (since i != 0) netCDF file for the forward model calculation    
+        T_z = np.squeeze(x_cs[i][:55])
+        Q_z = np.squeeze(x_cs[i][55:55+55])
+        LWP_n = x_cs[i][-1]
+        p, RH = helper.getProfilePresRH(alt, T_z, Q_z, sfc_pres)
+
+        # Make the F(X_{i+1}) calculation
+        sonde_file = config['working_dir'] + '/prior_comp.cdf'
+        writer.makeMonoRTMCDF(sonde_file, alt, T_z, p, RH)
+        os.environ['monortm_config'] = monortm_config_file
+        F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'], cloud_base, cloud_top)
+
+        # Store the RMS(F(i+1),Y), D(i+1), F(i+1) for the next OE calculation 
+        RMSs[i+1] = helper.rms(np.asarray(Y).squeeze(), F_x)
+        Fxs[i+1] = np.asarray(F_x).squeeze()
+        conv_norms[i+1] = conv_norm[0]
+        
+        # Convergence check for this current OE calculation
+        if conv_norms[i + 1] < ( len(x) / 10. ): # Reached the strict converged criteria.
+            i = config['max_iterations'] # This will end the loop.
             converged_flag = 1
-            # Save the profile
-            x_c = x
-        else:
-            # Didn't meet the strict converged criteria, keep iterating, but save the profiles.
-            conv_norms[i+1] = conv_norm
-
-            # Save the profile and arrays for later.
-            x_c = x
-            
+        else: # Didn't meet the strict converged criteria, keep iterating.
             # If the LWP < 0, need to set it to 0 to prevent MonoRTM from crashing.
             LWP_n = np.asarray(x)[-1][0]
             if LWP_n < 0:
@@ -176,46 +191,45 @@ for samp_idx in range(len(oe_inputs['p'])):
             # Increment the index and try the retrieval again.
             i = i + 1
 
+    # No more iterations, how did the solution "converge"?
     converged_idx = np.where(conv_norms < (len(x)))[0]
     if converged_flag == 1:
         # Meets strict converged criteria.
         print "Converged! ( di2m << nY )"
         idx = np.where( conv_norms != 0)[0]
         iter_count = len(idx)
-        idx = idx[-1]
+        soln_idx = idx[-1]
 
     elif converged_flag == 0 and len(converged_idx) > 0:
         # Didn't meet the strict converged criteria, but at least one profile met the converged criteria
-        idx = np.argmin(conv_norms[converged_idx])
-        iter_count = len(conv_norms)
+        min_idx = np.ma.argmin(conv_norms[converged_idx])
+        soln_idx = converged_idx[min_idx]
+        iter_count = soln_idx
         converged_flag = 1
         print "Converged! ( di2m < nY )"
 
     elif converged_flag == 0:
-        # Didn't converge, save the profile with the lowest RMS.
-        idx = np.argmin(RMSs)
+        # Didn't converge, find the index of the profile with the lowest RMS
+        soln_idx = np.ma.argmin(RMSs)
         iter_count = config['max_iterations']
         print "Max Iterations Reached -- Retrieval did not converge!  Saving iteration (iter " + str(idx) + ") with the best RMS."
 
     # Extract the profiles/variables from the retrieval solution
-    x_c = np.asarray(x_cs[idx]).squeeze()
+    x_c = np.asarray(x_cs[soln_idx - 1]).squeeze()
     T_z = x_c[:len(alt)]
     Q_z = x_c[len(alt):len(alt)*2]
     LWP_n = x_c[-1]
     if LWP_n < 0:
         LWP_n = 0
 
-    # Perform the final RMS calculation
+    F_x = Fxs[soln_idx] # This will be the F_x of the retrieved solution found.
     p, RH = helper.getProfilePresRH(alt, T_z, Q_z, sfc_pres)
-    writer.makeMonoRTMCDF(sonde_file, alt, T_z, p, RH)
-    os.environ['monortm_config'] = monortm_config_file
-    F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'], cloud_base, cloud_top)
 
     # Compute additional variables about the retrieval.
-    rms = helper.rms(np.asarray(Y).squeeze(), F_x)
-    sic = helper.sic(Sa, Sops[idx])
-    dfs = helper.dfs(As[idx])
-    T_vres, Q_vres = helper.vres(As[idx], alt)
+    rms = RMSs[soln_idx] # The RMS of the retieved solution
+    sic = helper.sic(Sa, Sops[soln_idx - 1])
+    dfs = helper.dfs(As[soln_idx - 1])
+    T_vres, Q_vres = helper.vres(As[soln_idx - 1], alt)
 
     output = {}
 
@@ -234,12 +248,12 @@ for samp_idx in range(len(oe_inputs['p'])):
     output['rms'] = rms
     output['converged_flag'] = converged_flag
     output['retr_time'] = (datetime.now() - begin_dt).seconds
-    output['iter_count'] = iter_count + 1
+    output['iter_count'] = iter_count
 
     # Matrices used in the OE equation
     output['x_c'] = x_c
-    output['Akernal_op'] = As[idx]
-    output['Sop'] = Sops[idx]
+    output['Akernal_op'] = As[soln_idx - 1]
+    output['Sop'] = Sops[soln_idx - 1]
     output['Sa'] = Sa
     output['Xa'] = np.asarray(Xa).squeeze().T
     output['Se'] = Se
