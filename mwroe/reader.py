@@ -502,6 +502,7 @@ def read_mwr_data(config, date, btime, etime):
         print "Unable to find any microwave radiometer files to perform the retrieval on."
         sys.exit()
     else:
+        print "Retrieval found: " + mwr_files[0]
         mwr_fn = mwr_files[0]
 
     if config['mwr_type'] == 1:
@@ -551,17 +552,20 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     start_dt = date2num(start_dt, 'seconds since 1970-01-01 00:00:00+00:00')
     end_dt = date2num(end_dt, 'seconds since 1970-01-01 00:00:00+00:00')
     idx = np.where((start_dt < epoch_times) & (end_dt > epoch_times))[0]
-    dts = dts[idx]
-    epoch_times = epoch_times[idx]
 
     # Try to ensure that a sample gets retrieved.
     if len(idx) == 0:
-        end_dt = end_dt + (60*15)
-        print "Setting the end date to the requested end date + 15 minutes to search for a sample."
+        end_dt = start_dt + (60*15)
+        print "MWRoe was unable to find a spectra within the requested time frame to retrieve on."
+        print "Setting the end time to the requested start time + 15 minutes to search for a sample..."
         idx = np.where((start_dt < epoch_times) & (end_dt > epoch_times))[0]
         if len(idx) == 0:
             print "Unable to find a sample to retrieve on."
             sys.exit()
+        print str(len(idx)) + " sample found."
+
+    dts = dts[idx]
+    epoch_times = epoch_times[idx]
 
     # Load needed variables from current HATPRO MWR file.
     rainflags = mwr_file.variables['flag'][idx]
@@ -592,7 +596,10 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     # Isolate the indices related to the zenith observations
     zenith_idx = np.where(abs(90-elevs)<0.1)[0]
     tb_zenith = tbs[:,zenith_idx,:].squeeze()
-
+    
+    if len(tb_zenith.shape) == 1:
+        tb_zenith = tb_zenith[np.newaxis,:]
+    
     # Load in the zenith observations
     z_freqs_idxs = []
     for z_freq in config['zenith_freqs']:
@@ -604,9 +611,6 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     filtered_tb_zenith = tb_zenith[:,z_freqs_idxs]
     tb_z_uncert = config['zenith_uncert'][z_freqs_idxs]
     elevations = 90 * np.ones(len(z_freqs))
-
-    if len(filtered_tb_zenith.shape) == 1:
-        filtered_tb_zenith = filtered_tb_zenith[np.newaxis,:]
 
     # Load in the off-zenith observations (need to loop through the specified elevations)
     elev_indexs = []
@@ -649,7 +653,7 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
         Y = filtered_tb_zenith
         oz_freqs = []
         tb_uncert = tb_z_uncert
-
+    
     oe_input = {}
     # Save the retrieval inputs to a dictionary
     oe_input["Y"] = Y

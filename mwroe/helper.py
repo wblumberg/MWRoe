@@ -158,7 +158,7 @@ def vres(A, alt):
 
 def convert_time(time, flag):
 
-    if cflag == 'hhmm':
+    if flag == 'hhmm':
         t_dec,t_int = math.modf(time)
         min_s = str(int(t_dec * 60))
         hr_s = str(int(t_int))
@@ -168,7 +168,7 @@ def convert_time(time, flag):
             hr_s = '0' + hr_s
         time_s = hr_s + min_s
 
-    elif conv_type_flag == 'h.hf':
+    elif flag == 'h.hf':
         hr_s = time[0:2]
         min_s = time[2:4]
         min_s = str(float(min_s) / 60).replace('0.','.')

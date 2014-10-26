@@ -4,6 +4,7 @@ import numpy as np
 import time as tm
 from dateutil import tz
 from datetime import datetime
+import helper
 
 def constructOutputFN(dts, config_dict):
     utc = tz.gettz('UTC')
@@ -28,9 +29,6 @@ def save_retrieval(out_filename, output, config_dict, prior_info, input_info):
 
     # Create the current retrieval time's full filename accordingly.
     # need to pass this function the first datetime object of the file     
-    #print os.system('rm ' + out_filename)
-    print output['LWP']
-    #stop
     if not os.path.isfile(out_filename):
         # Initialize the CDF file.
         rt_prf_grp = Dataset(out_filename, 'w', format='NETCDF3_CLASSIC')
@@ -324,8 +322,8 @@ def save_retrieval(out_filename, output, config_dict, prior_info, input_info):
     # Set values to the variables in the netCDF file. #
     ###################################################
     
-    dec_hour = helper.convert_time(int(datetime.strftime(toff_tm_ob)), 'hhmm')
-
+    dec_hour = helper.convert_time(datetime.strftime(toff_tm_ob, '%H%M'), 'h.hf')
+    
     prof_time[ntimes:ntimes+1] = datetime.strftime(toff_tm_ob, '%H%M')
     base_time[:] = epoch_time
     time_offset[ntimes:ntimes+1] = ep_time_offset
