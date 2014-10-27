@@ -212,7 +212,7 @@ for samp_idx in range(len(oe_inputs['p'])):
         # Didn't converge, find the index of the profile with the lowest RMS
         soln_idx = np.ma.argmin(RMSs)
         iter_count = config['max_iterations']
-        print "Max Iterations Reached -- Retrieval did not converge!  Saving iteration (iter " + str(idx) + ") with the best RMS."
+        print "Max Iterations Reached -- Retrieval did not converge!  Saving iteration (iter " + str(soln_idx) + ") with the best RMS."
 
     # Extract the profiles/variables from the retrieval solution
     x_c = np.asarray(x_cs[soln_idx - 1]).squeeze()
