@@ -5,8 +5,39 @@ import os
 import helper
 import sys
 
-def jacobian(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, alt, cbh, cth):
+###
+#
+# This module allows for interactions between MWRoe and the MonoRTM.
+#
+# It contains functions to generate the F(X) vector and the Jacobian (K) matrix.
+#
+###
 
+def jacobian(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, alt, cbh, cth):
+    '''
+        jacobian
+
+        This function computes the Jacobian needed by the optimal estimation equation.
+        It uses the gen_Fx function to do its dirty work.
+
+        Parameters
+        ----------
+        freq_filenames : a list of the paths to the MonoRTM frequency files that MonoRTM needs.
+        LWP_n : a float that is the current liquid water path value [g/m^2]
+        config_dict : a dictionary that contains the configuration variables
+        elevations : an array that contains the elevation levels of the radiometer.
+        F_x : the precomputed F(X) vector that will be the base state for the Jacobian.
+        X : the state vector containing the temperature [C], water vapor mixing ratio [g/kg], and LWP [g/m^2] values
+        sfc_pres : a float of the surface pressure value [mb].
+        alt : an array containing the height grid [meters]
+        cbh : the current cloud base height [km]
+        cth : the current cloud top height [km]
+
+        Returns
+        -------
+        K : the optimal estimation Jacobian
+    '''
+    
     # Pre-allocate the Jacobian matrix - array Ka.
     Ka = np.zeros((len(F_x),len(X)), dtype=np.float64)
     truth = np.zeros((len(F_x),len(X)), dtype=np.float64)
@@ -81,6 +112,26 @@ def jacobian(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, a
 # <codecell>
 
 def gen_Fx(sonde_file, freq_filenames, LWP_n, elevations, cbh, cth):
+    '''
+        gen_Fx
+
+        This function runs the MonoRTM given a frequency file, a config file, a sonde file,
+        and any additional parameters the MonoRTM needs.  It outputs a vector of brightness
+        temperature values for different frequencies.
+
+        Parameters
+        ----------
+        sonde_file : a string that contains the path to the netCDF sonde file to be run by MonoRTM
+        freq_filenames : an array containing the paths to the MonoRTM frequency files needed.
+        LWP_n : a float containing the liquid water path value [g/m^2]
+        elevations : an array containing the elevation values to run the MonoRTM at [deg]
+        cbh : a float representing the cloud base height [km]
+        cth : a float representing the cloud top height [km]
+
+        Returns
+        -------
+        F_x : the F_x brightness temperature vector
+    '''
 
     # Set MonoRTM adaptable parameters.
     pwv_sf = "1.0" # PWV scale factor is 1

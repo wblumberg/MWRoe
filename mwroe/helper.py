@@ -4,6 +4,27 @@ import writer
 import forwardmodel
 
 def getProfilePresRH(alt, T_z, Q_z, sfc_pres):
+    '''
+        getProfilePresRH
+
+        This function converts surface pressure value and water vapor 
+        mixing ratio profile into a profile of relative humidity
+        and pressure.  It uses the q2rh function and the hypsometric
+        equation (the virtual temperature correction is not applied here.)
+
+        Parameters
+        ----------
+        alt : an array containing the height grid [meters]
+        T_z : an array containing the temperature profile [C]
+        Q_z : an array containing the water vapor mixing ratio profile [g/kg]
+        sfc_pres : the surface pressure value [mb]
+
+        Returns
+        -------
+        P_z : an array of the pressure profile [mb]
+        RH_z : an array of the relative humidity profile [%]
+    '''
+
     K_C = 273.15
     Rd = 287
     g = 9.81
@@ -25,6 +46,22 @@ def getProfilePresRH(alt, T_z, Q_z, sfc_pres):
     return P_z, RH_z
 
 def q2rh(Q_z, P_z, T_z):
+    '''
+        q2rh
+
+        This helper function converts a profile of water vapor mixing ratio
+        into a profile of relative humidity.
+
+        Parameters
+        ----------
+        Q_z : an array of water vapor mixing ratio values [g/kg]
+        P_z : an array of the pressure profile [mb]
+        T_z : an array of the temperature profile [C]
+
+        Returns
+        -------
+        RH_z : an array of the relative humidity profile [%]
+    '''
     K_C = 273.15
 
     # Set constant parameters.
@@ -157,6 +194,21 @@ def vres(A, alt):
     return T_vres, Q_vres
 
 def convert_time(time, flag):
+    '''
+        convert_time
+
+        This function allows for string time conversions in the format of
+        'hhmm' and 'h.hf' using a datetime object.
+
+        Parameters
+        ----------
+        time : the datetime object to be formatted
+        flag : a flag indicating the format of the string to be returned.
+        
+        Returns
+        -------
+        time_s : a string of the time in the specified format
+    '''
 
     if flag == 'hhmm':
         t_dec,t_int = math.modf(time)
