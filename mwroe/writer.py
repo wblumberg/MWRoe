@@ -7,6 +7,24 @@ from datetime import datetime
 import helper
 
 def constructOutputFN(dts, config_dict):
+    '''
+        constructOutputFN
+
+        This function constructs a string that is the output filename 
+        for the file that contains the retrieval output.
+
+        Parameters
+        ----------
+        dts: a list of datetime objects for each retrieval observation that
+             will be retrieved.
+        config_dict : a dictionary that contains the configuration variables for the
+                      the retrieval.
+
+        Returns
+        -------
+        a string that is the filename where the retireval output will be saved
+    '''
+
     utc = tz.gettz('UTC')
     dt = dts[0].replace(tzinfo=utc)
     dt_string = datetime.strftime(dt, '.%Y%m%d.%H%M%S.cdf')
@@ -15,6 +33,25 @@ def constructOutputFN(dts, config_dict):
 
 
 def save_retrieval(out_filename, output, config_dict, prior_info, input_info):
+    '''
+        save_retrieval
+
+        This function writes the retrieval output to the netCDF file.
+        If the netCDF file already exists, this function appends the retrieval
+        output to the file.
+
+        Parameters
+        ----------
+        out_filename: a string containing the output filename for the retrieval output file
+        output : a dictionary containing the retrieval output to be saved.
+        config_dict : a dictionary containing the configuration variables
+        prior_info :
+        input_info : a dictionary containing the retrieval input variables
+    
+        Returns
+        ------- 
+        None
+    '''
     Rd = 287
     K_C = 273.15
 
@@ -384,7 +421,21 @@ def save_retrieval(out_filename, output, config_dict, prior_info, input_info):
 
 
 def writeMonoRTMFreqs(oe_input, config):
+    '''
+        writeMonoRTMFreqs
 
+        This function writes the frequency file used to run the 
+        MonoRTM using the frequencies specified by the retrieval.
+
+        Parameters
+        ----------
+        oe_input : a dictionary containing the retrieval input variables
+        config : a dictionary containing all of the retrieval configurationv variables
+
+        Returns
+        -------
+        None
+    '''
     # Write the ZENITH frequencies we want on the frequency file.
     freq_zenith_file = config['working_dir'] + "/" + config['monortm_freqs_fname_base'] + '.zen'
     num_zenith_freqs = str(len(oe_input['z_freqs']))
@@ -478,6 +529,26 @@ def writeMonoRTMConfig(alt, config_dict):
 
 
 def makeMonoRTMCDF(sonde_file,alta,T_z,P_z,RH_z):
+    '''
+        makeMonoRTMCDF
+    
+        This function creates a netCDF file containing the thermodynamic profile
+        that will be used to run the MonoRTM.  The netCDF file is formatted off of
+        the ARM radiosonde format, as Dave Turner's (NSSL) MonoRTM wrapper script
+        that is called by the MWRoe program requires a netCDF file in this format.
+
+        Parameters
+        ----------
+        sonde_file : a string that is the sonde file name to be written to.
+        alta : an array containing the height grid [meters]
+        T_z : an array containing the temperature profile [C]
+        P_z : an array containing the pressure profile [mb]
+        RH_z : an array contianing the relative humidity profile [%]
+
+        Returns
+        -------
+        None
+    '''
 
     # Initialize the CDF file.
     sf_tmp_grp = Dataset(sonde_file, 'w', format='NETCDF3_CLASSIC')
