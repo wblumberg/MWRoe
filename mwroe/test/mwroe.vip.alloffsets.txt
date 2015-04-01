@@ -19,6 +19,7 @@ cbh_path        = /raid/FRDD/Dave.Turner/data/fkb/vceil
 cbh_window_in	=  20		; Inner full-width window size to look for cloud values [min] 
 cbh_window_out	= 180		; Outer full-width window size to look for cloud values [min] 
 cbh_default_ht  = 2.0		; Default CBH, if no CBH data found [km AGL] 
+offset_file     = /Users/gregblumberg/mwr_bias/MWRBiasOE/
 output_rootname = fkbmwroe1blumC1.c1
 output_path     = /raid/FRDD/Dave.Turner/data/fkb/mwr/mwroe/final_dataset1_alloff
 output_clobber  = 0		; 0 - do not clobber any existing file, 1 - clobber it
