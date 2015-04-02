@@ -59,7 +59,6 @@ Xa, Sa, alt, prior_info = reader.constructPrior(prior_filename, config)
 
 # Write the MonoRTM Config and Freqs files
 monortm_config_file = writer.writeMonoRTMConfig(alt/1000., config)
-monortm_freqs_files = writer.writeMonoRTMFreqs(oe_inputs, config)
 
 # Get the output filename.
 out_filename = writer.constructOutputFN(oe_inputs['dt_times'], config)
@@ -99,6 +98,9 @@ for samp_idx in range(len(oe_inputs['p'])):
 
     i = 0
 
+    # Read in brightness temperature and frequency offset data
+    offsets = reader.read_offset_data(config, oe_inputs['dt_times'][samp_idx], oe_inputs)
+    monortm_freqs_files = writer.writeMonoRTMFreqs(oe_inputs, config, offsets)
     # Build arrays used to save the results from each iteration.
     conv_norms = np.zeros(1 + config['max_iterations'])
     x_cs = np.zeros((config['max_iterations'], len(Xa)))
@@ -118,12 +120,13 @@ for samp_idx in range(len(oe_inputs['p'])):
     LWP_n = x_c[-1]
     p, RH = helper.getProfilePresRH(alt, T_z, Q_z, sfc_pres)
 
-    # Make the F(Xa) calculation
+    # Make the F(Xa) calculation (the first forward model calculation)
     sonde_file = config['working_dir'] + '/prior_comp.cdf'
     writer.makeMonoRTMCDF(sonde_file, alt, T_z, p, RH)
     os.environ['monortm_config'] = monortm_config_file
-    F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'], cloud_base, cloud_top)
-
+    F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'],\
+                                 cloud_base, cloud_top, delta_tb = offsets['all_tb_offsets'])
+    
     # Store the RMS(F(Xa),Y)) and the F(Xa) for i = 0
     RMSs[i] = helper.rms(np.asarray(Y).squeeze(), F_x)
     Fxs[i] = np.asarray(F_x).squeeze()
@@ -133,7 +136,7 @@ for samp_idx in range(len(oe_inputs['p'])):
         print "    iter is " + str(i+1) + ", di2m is " + fmt_conv + ", and RMS is " + str(np.round(RMSs[i],2))
         
         # Compute the Jacobian K:
-        K = forwardmodel.jacobian(monortm_freqs_files, LWP_n, config, oe_inputs['elevations_unique'], F_x, x_c, sfc_pres, alt, cloud_base, cloud_top)
+        K = forwardmodel.jacobian_Ka(monortm_freqs_files, LWP_n, config, oe_inputs['elevations_unique'], F_x, x_c, sfc_pres, alt, cloud_base, cloud_top, delta_tb=offsets['all_tb_offsets'])
         K = np.matrix(K)
 
         # Fix the dimensions of the numpy matrices so the OE equation doesn't go fubar
@@ -168,7 +171,7 @@ for samp_idx in range(len(oe_inputs['p'])):
         sonde_file = config['working_dir'] + '/prior_comp.cdf'
         writer.makeMonoRTMCDF(sonde_file, alt, T_z, p, RH)
         os.environ['monortm_config'] = monortm_config_file
-        F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'], cloud_base, cloud_top)
+        F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'], cloud_base, cloud_top, delta_tb=offsets['all_tb_offsets'])
 
         # Store the RMS(F(i+1),Y), D(i+1), F(i+1) for the next OE calculation 
         RMSs[i+1] = helper.rms(np.asarray(Y).squeeze(), F_x)
@@ -199,7 +202,7 @@ for samp_idx in range(len(oe_inputs['p'])):
         idx = np.where( conv_norms != 0)[0]
         iter_count = len(idx)
         soln_idx = idx[-1]
-
+        stop
     elif converged_flag == 0 and len(converged_idx) > 0:
         # Didn't meet the strict converged criteria, but at least one profile met the converged criteria
         min_idx = np.ma.argmin(conv_norms[converged_idx])

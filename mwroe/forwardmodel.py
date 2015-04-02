@@ -13,7 +13,7 @@ import sys
 #
 ###
 
-def jacobian_Ka(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, alt, cbh, cth, delta_tb=0):
+def jacobian_Ka(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, alt, cbh, cth, delta_tb=0, debug=False):
     '''
         jacobian
 
@@ -94,7 +94,7 @@ def jacobian_Ka(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres
         writer.makeMonoRTMCDF(sonde_file, alt, T_zp, P_zp, RH_zp)
         
         # Run the radiative transfer model
-        F_xp = gen_Fx(sonde_file, freq_filenames, LWP, elevations, cbh, cth, delta_tb)
+        F_xp = gen_Fx(sonde_file, freq_filenames, LWP, elevations, cbh, cth, delta_tb, debug=debug)
         os.system('rm ' + sonde_file)
 
         # Save the unperturbed (truth) and perturbed (pert) spectra
@@ -111,7 +111,7 @@ def jacobian_Ka(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres
 
 # <codecell>
 
-def gen_Fx(sonde_file, freq_filenames, LWP_n, elevations, cbh, cth, delta_tb=0):
+def gen_Fx(sonde_file, freq_filenames, LWP_n, elevations, cbh, cth, delta_tb=0, debug=False):
     '''
         gen_Fx
 
@@ -163,6 +163,9 @@ def gen_Fx(sonde_file, freq_filenames, LWP_n, elevations, cbh, cth, delta_tb=0):
 
             # Run the string and get the output
             output = subprocess.Popen(monoStr, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()[0]
+            
+            if debug is True:
+                print output
             # Try to parse out the brightness temperatures from the MonoRTM output
             try:
                 output = output.split('ODliq')[1].strip().split()
@@ -177,7 +180,7 @@ def gen_Fx(sonde_file, freq_filenames, LWP_n, elevations, cbh, cth, delta_tb=0):
             output = np.reshape(output, (len_out/7, 7))
             monoRTM_output = output[:,1] # The brightness temperatures
 
-            if Fx == None:
+            if Fx is None:
                 # If the Fx variable hasn't been assigned to anything yet
                 # then we need to assign it.  This is the zenith Tbs.
                 Fx = monoRTM_output
