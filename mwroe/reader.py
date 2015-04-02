@@ -271,7 +271,7 @@ def readVIP(vip_fn):
     try:
         var = findVIPVariable('offset_file', vip_string)
         config_dict['use_offsetfile'] = True
-        config_dict['offset_file'] = var
+        config_dict['offset_file'] = var.strip()
     except:
         print "An offset file for the MWR bias correction was not found.  Defaulting to the \
                specified offsets in the VIP file."
@@ -403,7 +403,7 @@ def readVIP(vip_fn):
     # Return the dictionary (or structure) containing all of the configuration information needed to run the retrieval.        
     return config_dict
 
-def read_offset_data(config, dt_obj, method='interp', extrapolate=True):
+def read_offset_data(config, dt_obj, oe_inputs, method='interp', extrapolate=True):
     '''
         read_offset_data
 
@@ -429,8 +429,69 @@ def read_offset_data(config, dt_obj, method='interp', extrapolate=True):
         elev_offsets : an array of the elevation offsets [deg] to be applied to the MonoRTM calcs
         freq_offsets : an array of the frequency offsets [GHz] to be applied to the frequency values
     '''
-    #data = Dataset(config['offset_file'])
-    return
+    data = Dataset(config['offset_file'])
+    times = data.variables['base_time'][:] # Should be in epoch since 1970-01-01 00:00:00+00:00
+    bias_freqs = data.variables['frequencies'][:]
+
+    ob_time = date2num(dt_obj, 'seconds since 1970-01-01 00:00:00+00:00')
+    z_freqs = oe_inputs['z_freqs']
+    z_tb_offsets = np.empty(len(z_freqs))
+    z_freq_offsets = np.empty(len(z_freqs))
+    z_tb_sigma = np.empty(len(z_freqs))
+    z_freq_sigma = np.empty(len(z_freqs)) 
+    for i in xrange(len(z_freqs)): # Get all offsets for the zenith frequencies
+        idx = np.argmin(np.abs(bias_freqs - z_freqs[i]))
+        offset_f = data.variables['delta_f'][idx]
+        offset_tb = np.ma.masked_values(data.variables['delta_tb'][:,idx],-9999)
+        uncert_f = data.variables['f_sigma'][idx]
+        uncert_tb = np.ma.masked_values(data.variables['tb_sigma'][:,idx],-9999)
+        mask = uncert_tb.mask
+        try:
+            dummy = len(mask)
+        except:
+            mask = np.repeat(False, len(uncert_tb))
+        tb_u = np.interp(ob_time, times[~mask], uncert_tb[~mask])
+        tb_o = np.interp(ob_time, times[~mask], offset_tb[~mask])
+        z_tb_offsets[i] = tb_o
+        z_freq_offsets[i] = offset_f
+        z_tb_sigma[i] = tb_u
+        z_freq_sigma[i] = uncert_f
+ 
+    offsets = {}
+    #offsets['z_tb_offsets'] = z_tb_offsets
+    offsets['z_freq_offsets'] = z_freq_offsets
+    #offsets['z_tb_sigma'] = z_tb_sigma
+    offsets['z_freq_sigma'] = z_freq_sigma
+
+    oz_freqs = oe_inputs['oz_freqs']
+    oz_tb_offsets = np.empty(len(oz_freqs))
+    oz_freq_offsets = np.empty(len(oz_freqs))
+    oz_tb_sigma = np.empty(len(oz_freqs))
+    oz_freq_sigma = np.empty(len(oz_freqs)) 
+    for i in xrange(len(oz_freqs)): # Get all offsets for the zenith frequencies
+        idx = np.argmin(np.abs(bias_freqs - oz_freqs[i]))
+        offset_f = data.variables['delta_f'][idx]
+        offset_tb = np.ma.masked_values(data.variables['delta_tb'][:,idx],-9999)
+        uncert_f = data.variables['f_sigma'][idx]
+        uncert_tb = np.ma.masked_values(data.variables['tb_sigma'][:,idx],-9999)
+        mask = uncert_tb.mask
+        try:
+            dummy = len(mask)
+        except:
+            mask = np.repeat(False, len(uncert_tb))
+        tb_u = np.interp(ob_time, times[~mask], uncert_tb[~mask])
+        tb_o = np.interp(ob_time, times[~mask], offset_tb[~mask])
+        oz_tb_offsets[i] = tb_o
+        oz_freq_offsets[i] = offset_f
+        oz_tb_sigma[i] = tb_u
+        oz_freq_sigma[i] = uncert_f
+
+    offsets['all_tb_offsets'] = np.concatenate((z_tb_offsets, np.tile(oz_tb_offsets, len(oe_inputs['elevations_unique'])-1)))    
+    offsets['all_tb_sigmas'] = np.concatenate((z_tb_sigma, np.tile(oz_tb_sigma, len(oe_inputs['elevations_unique'])-1)))    
+    offsets['oz_freq_offsets'] = oz_freq_offsets
+    offsets['oz_freq_sigma'] = oz_freq_sigma
+    
+    return offsets
 
 
 def read_vceil_data(config, date, times):
@@ -539,6 +600,7 @@ def read_mwr_data(config, date, btime, etime):
         print "MWRoe cannot isolate one MWR data file to retrieve from.  Aborting the retrieval."
         sys.exit()
     elif len(mwr_files) == 0:
+        print config['mwr_dir'] + '/*' + date + '*.cdf'
         print "Unable to find any microwave radiometer files to perform the retrieval on."
         sys.exit()
     else:
@@ -615,13 +677,13 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     elevs = mwr_file.variables['hatpro_elevation_angle'][:]
     freqs = mwr_file.variables['frequencies'][:]
     tbs = mwr_file.variables['brightness_temperature'][idx,:,:]
-    print "\n\n\nIF YOU'RE RUNNING THIS ON REAL DATA, STOP!\n\n\n"
-    tbs[0,0,0] = tbs[0,0,0] - 1.12
-    tbs[1,0,1] = tbs[1,0,1] - 1.06
-    tbs[2,0,2] = tbs[2,0,2] - 0.73
-    tbs[3,0,6] = tbs[3,0,6] - 1.12
-    tbs[4,0,7] = tbs[4,0,7] - 0.42
-    tbs[6,0,9] = tbs[6,0,9] - 0.25
+    #print "\n\n\nIF YOU'RE RUNNING THIS ON REAL DATA, STOP!\n\n\n"
+    #tbs[0,0,0] = tbs[0,0,0] - 1.12
+    #tbs[1,0,1] = tbs[1,0,1] - 1.06
+    #tbs[2,0,2] = tbs[2,0,2] - 0.73
+    #tbs[3,0,6] = tbs[3,0,6] - 1.12
+    #tbs[4,0,7] = tbs[4,0,7] - 0.42
+    #tbs[6,0,9] = tbs[6,0,9] - 0.25
 
     # Apply the correction to the MWR pressure sensor.
     p_sfcs = config['mwr_calib_pres'][1] * p_sfcs + config['mwr_calib_pres'][0]
@@ -713,11 +775,11 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     oe_input["dt_times"] = dts
     oe_input["z_freqs"] = z_freqs
     oe_input["oz_freqs"] = oz_freqs
-    oe_input["all_freqs"] = 0
     oe_input["all_elevs"] = 0
     indexes = np.unique(elevations, return_index=True)[1]
     oe_input["elevations_unique"] = [elevations[index] for index in sorted(indexes)]
     oe_input["elevations"] = elevations
+    oe_input["all_freqs"] = np.concatenate((z_freqs,np.tile(oz_freqs, len(oe_input['elevations_unique'])-1)))
     oe_input["lat"] = lat
     oe_input["lon"] = lon
     oe_input["alt"] = alt

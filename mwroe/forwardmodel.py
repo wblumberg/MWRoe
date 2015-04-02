@@ -13,7 +13,7 @@ import sys
 #
 ###
 
-def jacobian(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, alt, cbh, cth):
+def jacobian_Ka(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, alt, cbh, cth, delta_tb=0):
     '''
         jacobian
 
@@ -94,7 +94,7 @@ def jacobian(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, a
         writer.makeMonoRTMCDF(sonde_file, alt, T_zp, P_zp, RH_zp)
         
         # Run the radiative transfer model
-        F_xp = gen_Fx(sonde_file, freq_filenames, LWP, elevations, cbh, cth)
+        F_xp = gen_Fx(sonde_file, freq_filenames, LWP, elevations, cbh, cth, delta_tb)
         os.system('rm ' + sonde_file)
 
         # Save the unperturbed (truth) and perturbed (pert) spectra
@@ -111,7 +111,7 @@ def jacobian(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, a
 
 # <codecell>
 
-def gen_Fx(sonde_file, freq_filenames, LWP_n, elevations, cbh, cth):
+def gen_Fx(sonde_file, freq_filenames, LWP_n, elevations, cbh, cth, delta_tb=0):
     '''
         gen_Fx
 
@@ -186,4 +186,4 @@ def gen_Fx(sonde_file, freq_filenames, LWP_n, elevations, cbh, cth):
                 # This will happen if there are additional Tbs (off-zenith).
                 Fx = np.hstack((Fx, monoRTM_output))
 
-    return Fx
+    return delta_tb + Fx

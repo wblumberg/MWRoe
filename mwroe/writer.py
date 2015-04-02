@@ -420,7 +420,7 @@ def save_retrieval(out_filename, output, config_dict, prior_info, input_info):
 
 
 
-def writeMonoRTMFreqs(oe_input, config):
+def writeMonoRTMFreqs(oe_input, config, offsets):
     '''
         writeMonoRTMFreqs
 
@@ -439,7 +439,7 @@ def writeMonoRTMFreqs(oe_input, config):
     # Write the ZENITH frequencies we want on the frequency file.
     freq_zenith_file = config['working_dir'] + "/" + config['monortm_freqs_fname_base'] + '.zen'
     num_zenith_freqs = str(len(oe_input['z_freqs']))
-    zenith_freqs = [str(i + o) for o,i in zip(config['freq_offsets'], oe_input['z_freqs'])]
+    zenith_freqs = [str(i + o) for o,i in zip(offsets['z_freq_offsets'], oe_input['z_freqs'])]
 
     freq_file = open(freq_zenith_file,'w')
     freq_file.write('\n')
@@ -457,7 +457,7 @@ def writeMonoRTMFreqs(oe_input, config):
     if int(num_off_zenith_freqs) != 0:
         freq_oz_file = config['working_dir'] + "/" + config['monortm_freqs_fname_base'] + '.ozen'
         oz_freqs = oe_input['oz_freqs']
-        off_zenith_freqs = [str(i) for i in oz_freqs]
+        off_zenith_freqs = [str(i + o) for o,i in zip(offsets['oz_freq_offsets'],oz_freqs)]
         freq_file = open(freq_oz_file,'w')
         freq_file.write('\n')
         freq_file.write('%s\n' % num_off_zenith_freqs) # Write the number of frequencies for the monoRTM to the freq file
