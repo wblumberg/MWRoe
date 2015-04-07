@@ -101,6 +101,8 @@ for samp_idx in range(len(oe_inputs['p'])):
     # Read in brightness temperature and frequency offset data
     offsets = reader.read_offset_data(config, oe_inputs['dt_times'][samp_idx], oe_inputs)
     monortm_freqs_files = writer.writeMonoRTMFreqs(oe_inputs, config, offsets)
+    Se = np.matrix(np.diag(np.power(offsets['all_tb_sigmas'],2)))
+
     # Build arrays used to save the results from each iteration.
     conv_norms = np.zeros(1 + config['max_iterations'])
     x_cs = np.zeros((config['max_iterations'], len(Xa)))
@@ -202,7 +204,6 @@ for samp_idx in range(len(oe_inputs['p'])):
         idx = np.where( conv_norms != 0)[0]
         iter_count = len(idx)
         soln_idx = idx[-1]
-        stop
     elif converged_flag == 0 and len(converged_idx) > 0:
         # Didn't meet the strict converged criteria, but at least one profile met the converged criteria
         min_idx = np.ma.argmin(conv_norms[converged_idx])

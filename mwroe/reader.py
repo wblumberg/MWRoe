@@ -655,7 +655,7 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     end_dt = date2num(end_dt, 'seconds since 1970-01-01 00:00:00+00:00')
     idx = np.where((start_dt < epoch_times) & (end_dt > epoch_times))[0]
     times = mwr_file.variables['time'][:]
-    idx = np.arange(0, 7, 1)
+    #idx = np.arange(0, 7, 1)
 
     # Try to ensure that a sample gets retrieved.
     if len(idx) == 0:
@@ -687,7 +687,7 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
 
     # Apply the correction to the MWR pressure sensor.
     p_sfcs = config['mwr_calib_pres'][1] * p_sfcs + config['mwr_calib_pres'][0]
-    p_sfcs[5] = p_sfcs[5] + 1
+    #p_sfcs[5] = p_sfcs[5] + 1
 
     # Apply any corrections to the MWR altitude, longitude, or latitude fields
     if config['mwr_lat'] == -1:
