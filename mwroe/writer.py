@@ -501,7 +501,8 @@ def writeMonoRTMConfig(alt, config_dict):
 
     monortm_configs_fname = config_dict['working_dir'] + '/' + config_dict['monortm_configs_fname'] + '_' + n_s + 'L.txt'
     mcf_fncp = monortm_configs_fname
-    mcf_file = open(mcf_fncp,'a')
+    print mcf_fncp
+    mcf_file = open(mcf_fncp,'w')
     mcf_file.write(config_dict['monortm_path'] + '\n')
     mcf_file.write(config_dict['monortm_spectral_dat'] + '\n')
     mcf_file.write('0       Verbose level (0 is quiet, 1 is DEBUG)\n')

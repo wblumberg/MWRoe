@@ -4,6 +4,7 @@ import glob
 import numpy as np
 from datetime import datetime
 import os
+import random
 
 def constructPrior(prior_filename, config_dict):
     """
@@ -358,7 +359,10 @@ def readVIP(vip_fn):
     config_dict['monortm_exec_path'] = findVIPVariable('monortm_exec', vip_string).strip()
     
     #Working directory for MonoRTM
-    config_dict['working_dir'] = findVIPVariable('working_dir', vip_string).strip()
+    random_no = str(random.randint(0, 100000))
+    config_dict['working_dir'] = findVIPVariable('working_dir', vip_string).strip() + '-' + random_no
+    os.system('mkdir ' + config_dict['working_dir'])
+
     config_dict['monortm_path'] = findVIPVariable('monortm_path', vip_string).strip()
     config_dict['monortm_spectral_dat'] = findVIPVariable('monortm_spectral_dat', vip_string).strip()
 
