@@ -618,3 +618,56 @@ def makeMonoRTMCDF(sonde_file,alta,T_z,P_z,RH_z):
 
     # Set the permissions for the CDF file.
     os.system ("chmod 744" + " " + sonde_file)
+
+
+def writeMonoRTMFreqs_FM(z_freqs,oz_freqs, config):
+    '''
+        writeMonoRTMFreqs
+
+        This function writes the frequency file used to run the 
+        MonoRTM using the frequencies specified by the retrieval.
+
+        Parameters
+        ----------
+        oe_input : a dictionary containing the retrieval input variables
+        config : a dictionary containing all of the retrieval configurationv variables
+
+        Returns
+        -------
+        None
+    '''
+    # Write the ZENITH frequencies we want on the frequency file.
+    freq_zenith_file = config['working_dir'] + "/" + config['monortm_freqs_fname_base'] + '_FM.zen'
+    num_zenith_freqs = str(len(z_freqs))
+    zenith_freqs = [str(i) for i in z_freqs]
+
+    freq_file = open(freq_zenith_file,'w')
+    freq_file.write('\n')
+    freq_file.write('%s\n' % num_zenith_freqs)
+
+    for i in range(int(num_zenith_freqs)):
+        #print '%s\n' % zenith_freqs[i]
+        freq_file.write('%s\n' % zenith_freqs[i])
+
+    freq_file.close()
+    monoRTM_freq_files = [freq_zenith_file]
+
+    # Write the OFF-ZENITH frequencies we want to a separate frequency file.
+    num_off_zenith_freqs = str(len(oz_freqs))
+    if int(num_off_zenith_freqs) != 0:
+        freq_oz_file = config['working_dir'] + "/" + config['monortm_freqs_fname_base'] + '_FM.ozen'
+        off_zenith_freqs = [str(i) for i in oz_freqs]
+        freq_file = open(freq_oz_file,'w')
+        freq_file.write('\n')
+        freq_file.write('%s\n' % num_off_zenith_freqs) # Write the number of frequencies for the monoRTM to the freq file
+
+        # Write the off-zenith frequencies to the monortm_freqs file
+        for i in range(int(num_off_zenith_freqs)):
+            freq_file.write('%s\n' % off_zenith_freqs[i])
+        freq_file.close()
+
+        monoRTM_freq_files.append(freq_oz_file)
+
+    return monoRTM_freq_files
+
+

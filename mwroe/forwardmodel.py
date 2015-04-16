@@ -13,6 +13,33 @@ import sys
 #
 ###
 
+def jacobian_Kb(sonde_file, LWP_n, config_dict, oe_inputs, offsets, F_x, cbh, cth, delta_tb=0, debug=False):
+    '''
+        Jacobian Kb
+
+        This function computes the Jacobian that describes the sensitivity of the forward model
+        to perturbations in frequency offsets and brightness temperature offsets.
+
+
+    '''
+   
+    tb_pert = 1 # K
+    f_pert = 0.01 # GHz
+
+    # Step 1 write new zenith and off-zenith freqency files by adding the f_pert to the known freqs.
+    #writer.
+    freq_filenames = writer.writeMonoRTMFreqs_FM(f_pert + np.asarray(oe_inputs['z_freqs']) + np.asarray(offsets['z_freq_offsets']), f_pert + np.asarray(oe_inputs['oz_freqs']) + np.asarray(offsets['oz_freq_offsets']), config_dict)
+
+    # Step 2 Compute the F_xp using these new frequency files.  Subtract from F_x.
+    F_xp = gen_Fx(sonde_file, freq_filenames, LWP_n, oe_inputs['elevations_unique'], cbh, cth, delta_tb, debug=debug)
+    J1 = np.diag((F_xp - F_x)/f_pert)
+    
+    # Step 3 Compute the Brightness temperature portion of the Jacobian.  This will be linear,
+    # so it'll just the 1.  Use the identity matrix here.
+    J2 = np.identity(len(np.asarray(F_x).squeeze()))
+        
+    return np.vstack((J1, J2))
+
 def jacobian_Ka(freq_filenames, LWP_n, config_dict, elevations, F_x, X, sfc_pres, alt, cbh, cth, delta_tb=0, debug=False):
     '''
         jacobian

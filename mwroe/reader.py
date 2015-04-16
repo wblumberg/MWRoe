@@ -434,6 +434,10 @@ def read_offset_data(config, dt_obj, oe_inputs, method='interp', extrapolate=Tru
     bias_freqs = data.variables['frequencies'][:]
 
     ob_time = date2num(dt_obj, 'seconds since 1970-01-01 00:00:00+00:00')
+    #print dt_obj
+    #print num2date(times, 'seconds since 1970-01-01 00:00:00+00:00')
+    #print np.abs(ob_time - times)
+    #stop
     z_freqs = oe_inputs['z_freqs']
     z_tb_offsets = np.empty(len(z_freqs))
     z_freq_offsets = np.empty(len(z_freqs))
@@ -450,13 +454,24 @@ def read_offset_data(config, dt_obj, oe_inputs, method='interp', extrapolate=Tru
             dummy = len(mask)
         except:
             mask = np.repeat(False, len(uncert_tb))
-        tb_u = np.interp(ob_time, times[~mask], uncert_tb[~mask])
-        tb_o = np.interp(ob_time, times[~mask], offset_tb[~mask])
+        if method == "interp":
+            tb_u = np.interp(ob_time, times[~mask], uncert_tb[~mask])
+            tb_o = np.interp(ob_time, times[~mask], offset_tb[~mask])
+        elif method == 'nearest':
+            time_nearest_idx = np.argmin(np.abs(ob_time - times[~mask]))
+            
+            tb_u = uncert_tb[~mask][time_nearest_idx]
+            tb_o = offset_tb[~mask][time_nearest_idx]
+        else:
+            print "Invalid method: " + str(method)
+            raise Exception
         z_tb_offsets[i] = tb_o
         z_freq_offsets[i] = offset_f
         z_tb_sigma[i] = tb_u
         z_freq_sigma[i] = uncert_f
- 
+    #z_tb_offsets[:] = data.variables['delta_tb'][56,:]
+    #z_freq_offsets[:] = data.variables['delta_f'][:]
+
     offsets = {}
     #offsets['z_tb_offsets'] = z_tb_offsets
     offsets['z_freq_offsets'] = z_freq_offsets
@@ -490,7 +505,9 @@ def read_offset_data(config, dt_obj, oe_inputs, method='interp', extrapolate=Tru
     offsets['all_tb_sigmas'] = np.concatenate((z_tb_sigma, np.tile(oz_tb_sigma, len(oe_inputs['elevations_unique'])-1)))    
     offsets['oz_freq_offsets'] = oz_freq_offsets
     offsets['oz_freq_sigma'] = oz_freq_sigma
-    
+    offsets['all_freq_sigmas'] = np.concatenate((z_freq_sigma, np.tile(oz_freq_sigma, len(oe_inputs['elevations_unique'])-1)))
+    offsets['B'] = np.matrix(np.diag(np.concatenate((offsets['all_freq_sigmas'], offsets['all_tb_sigmas']))))
+ 
     return offsets
 
 
@@ -656,7 +673,9 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     idx = np.where((start_dt < epoch_times) & (end_dt > epoch_times))[0]
     times = mwr_file.variables['time'][:]
     #idx = np.arange(0, 7, 1)
-
+    #print "MWRoe is edited here and is using a hard-coded time index value here of 55."
+    #idx = np.array([55])
+    
     # Try to ensure that a sample gets retrieved.
     if len(idx) == 0:
         end_dt = start_dt + (60*15)
