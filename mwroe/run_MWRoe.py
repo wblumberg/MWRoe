@@ -74,9 +74,6 @@ if os.path.exists(out_filename):
         # Enter the APPEND MODE (yet to be coded)
         sys.exit()
 
-# Make the Se Matrix
-Se = np.matrix(np.diag(np.power(oe_inputs['tb_uncert'],2)))
-
 # Set the x_c equal to the prior for the first iteration
 x_c = Xa
 Xa = np.matrix(Xa).T
@@ -99,9 +96,11 @@ for samp_idx in range(len(oe_inputs['p'])):
     i = 0
 
     # Read in brightness temperature and frequency offset data
-    offsets = reader.read_offset_data(config, oe_inputs['dt_times'][samp_idx], oe_inputs)
+    offsets = reader.read_offset_data(config, oe_inputs['dt_times'][samp_idx], oe_inputs, method='nearest')
     monortm_freqs_files = writer.writeMonoRTMFreqs(oe_inputs, config, offsets)
-    Se = np.matrix(np.diag(np.power(offsets['all_tb_sigmas'],2)))
+    
+    # Make the S_ob matrix that describes the MWR random error (forward model error to be added later)d
+    S_y = np.matrix(np.diag(np.power(oe_inputs['tb_uncert'],2)))
 
     # Build arrays used to save the results from each iteration.
     conv_norms = np.zeros(1 + config['max_iterations'])
@@ -126,9 +125,20 @@ for samp_idx in range(len(oe_inputs['p'])):
     sonde_file = config['working_dir'] + '/prior_comp.cdf'
     writer.makeMonoRTMCDF(sonde_file, alt, T_z, p, RH)
     os.environ['monortm_config'] = monortm_config_file
+#    sonde_file = '/Users/gregblumberg/mwr_bias/clearsky/fkbsondewnpnM1.b1.20070912.172900.cdf'
+#    print "Sonde File for MonoRTM:",sonde_file
+#    print "The MonoRTM Freq files:",monortm_freqs_files
+#    print "The Tb Offsets:",offsets['all_tb_offsets']
+#    print "The freq offsets:",offsets['z_freq_offsets']
+#    print "All the elevations:",oe_inputs['elevations_unique']
+#    print LWP_n
     F_x = forwardmodel.gen_Fx(sonde_file, monortm_freqs_files, LWP_n, oe_inputs['elevations_unique'],\
-                                 cloud_base, cloud_top, delta_tb = offsets['all_tb_offsets'])
-    
+                               cloud_base, cloud_top, delta_tb = offsets['all_tb_offsets'])
+#    print "F_x:",np.asarray(F_x)
+#    print "Y:",np.asarray(Y).squeeze()
+#    print "Y-F_x:",np.asarray(Y).squeeze() - np.asarray(F_x)
+#    print "RMS:",helper.rms(np.asarray(Y).squeeze(),F_x)
+#    stop
     # Store the RMS(F(Xa),Y)) and the F(Xa) for i = 0
     RMSs[i] = helper.rms(np.asarray(Y).squeeze(), F_x)
     Fxs[i] = np.asarray(F_x).squeeze()
@@ -136,7 +146,11 @@ for samp_idx in range(len(oe_inputs['p'])):
     while i < config['max_iterations']:
         fmt_conv = '%.4E' % conv_norms[i]
         print "    iter is " + str(i+1) + ", di2m is " + fmt_conv + ", and RMS is " + str(np.round(RMSs[i],2))
-        
+   
+        # Compute Se and propagate the forward model uncertainity from the bias correction.
+        Kb = forwardmodel.jacobian_Kb(sonde_file, LWP_n, config, oe_inputs, offsets, F_x, cloud_base, cloud_top, delta_tb=offsets['all_tb_offsets'])
+        Se = S_y + Kb.T * np.matrix(np.power(offsets['B'],2)) * Kb 
+
         # Compute the Jacobian K:
         K = forwardmodel.jacobian_Ka(monortm_freqs_files, LWP_n, config, oe_inputs['elevations_unique'], F_x, x_c, sfc_pres, alt, cloud_base, cloud_top, delta_tb=offsets['all_tb_offsets'])
         K = np.matrix(K)
@@ -152,6 +166,8 @@ for samp_idx in range(len(oe_inputs['p'])):
         A = Sop * K.T * np.linalg.inv(Se) * K
         x = Xa + ((Sop * K.T * np.linalg.inv(Se)) * ((Y - F_x) + (K * (x_c - Xa))))
 
+
+        print "Y-F_X:",Y-F_x
         # Solve for the convergence limit.
         conv_norm = np.asarray((x - x_c).T * inv_Sop * (x - x_c))[0] 
          
