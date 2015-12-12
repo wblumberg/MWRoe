@@ -96,12 +96,21 @@ for samp_idx in range(len(oe_inputs['p'])):
     i = 0
 
     # Read in brightness temperature and frequency offset data
-    offsets = reader.read_offset_data(config, oe_inputs['dt_times'][samp_idx], oe_inputs, method='nearest')
+#    offsets = reader.read_offset_data(config, oe_inputs['dt_times'][samp_idx], oe_inputs, method='interp')
+    offsets = {} 
+    print 'HARD CODED OFFSETS TO BE 0'
+    offsets['B'] = np.zeros((52, 52))
+    #print offsets['z_freq_offsets']
+    offsets['all_tb_offsets'] = np.zeros(22)
+    offsets['z_freq_offsets'] = np.zeros(22)
+    offsets['oz_freq_offsets'] = np.asarray([])#np.zeros(3)
+    print Y.shape
     monortm_freqs_files = writer.writeMonoRTMFreqs(oe_inputs, config, offsets)
-    
+ 
     # Make the S_ob matrix that describes the MWR random error (forward model error to be added later)d
     S_y = np.matrix(np.diag(np.power(oe_inputs['tb_uncert'],2)))
-
+    print S_y.shape
+    
     # Build arrays used to save the results from each iteration.
     conv_norms = np.zeros(1 + config['max_iterations'])
     x_cs = np.zeros((config['max_iterations'], len(Xa)))
@@ -148,8 +157,8 @@ for samp_idx in range(len(oe_inputs['p'])):
         print "    iter is " + str(i+1) + ", di2m is " + fmt_conv + ", and RMS is " + str(np.round(RMSs[i],2))
    
         # Compute Se and propagate the forward model uncertainity from the bias correction.
-        Kb = forwardmodel.jacobian_Kb(sonde_file, LWP_n, config, oe_inputs, offsets, F_x, cloud_base, cloud_top, delta_tb=offsets['all_tb_offsets'])
-        Se = S_y + Kb.T * np.matrix(np.power(offsets['B'],2)) * Kb 
+        #Kb = forwardmodel.jacobian_Kb(sonde_file, LWP_n, config, oe_inputs, offsets, F_x, cloud_base, cloud_top, delta_tb=offsets['all_tb_offsets'])
+        Se = S_y #+ Kb.T * np.matrix(np.power(offsets['B'],2)) * Kb 
 
         # Compute the Jacobian K:
         K = forwardmodel.jacobian_Ka(monortm_freqs_files, LWP_n, config, oe_inputs['elevations_unique'], F_x, x_c, sfc_pres, alt, cloud_base, cloud_top, delta_tb=offsets['all_tb_offsets'])

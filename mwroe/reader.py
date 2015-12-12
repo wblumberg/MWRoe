@@ -631,6 +631,9 @@ def read_mwr_data(config, date, btime, etime):
     if config['mwr_type'] == 1:
         print "MWRoe is expecting to find a HATPRO file..."
         oe_input = read_HATPRO(mwr_fn, config, date, btime, etime)
+    elif config['mwr_type'] == 2:
+        print "MWRoe is expecting to find a Radiometrics file..."
+        oe_input = read_Radiometrics(mwr_fn, config, date, btime, etime)
     else:
         print "No other type of microwave radiometer files are supported right now."
         sys.exit()
@@ -670,6 +673,7 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     dts = num2date(epoch_times, 'seconds since 1970-01-01 00:00:00+00:00')
 
     # Find the bounds for the time frame we want to retrieve from.
+    print date+etime
     start_dt = datetime.strptime(date + btime, '%Y%m%d%H%M')
     end_dt = datetime.strptime(date + etime, '%Y%m%d%H%M')
     start_dt = date2num(start_dt, 'seconds since 1970-01-01 00:00:00+00:00')
@@ -745,6 +749,181 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     z_freqs = freqs[z_freqs_idxs]
     filtered_tb_zenith = tb_zenith[:,z_freqs_idxs]
     tb_z_uncert = config['zenith_uncert'][z_freqs_idxs]
+    elevations = 90 * np.ones(len(z_freqs))
+
+    # Load in the off-zenith observations (need to loop through the specified elevations)
+    elev_indexs = []
+    for vip_e in config['off_zenith_elevs']:
+        for file_e in range(len(elevs)):
+            if abs(vip_e - elevs[file_e]) < 0.1:
+                elev_indexs.append(file_e)
+
+    all_freqs = z_freqs
+
+    # If there are off-zenith observations, then let's add them to the Y vector.
+    if len(elev_indexs) > 0:
+
+        # Find the indices for the off-zenith frequencies
+        oz_freqs_idxs = []
+        for oz_freq in config['off_zenith_freqs']:
+            for file_freq_idx in range(len(freqs)):
+                if abs(freqs[file_freq_idx] - oz_freq)<0.01:
+                    oz_freqs_idxs.append(file_freq_idx)
+
+        oz_freqs = freqs[oz_freqs_idxs]
+        all_freqs = np.hstack((all_freqs, np.tile(oz_freqs,len(elev_indexs)).flatten()))
+        elevations = np.hstack((elevations, np.repeat(elevs[elev_indexs], len(oz_freqs))))
+
+        tb_ozenith = tbs[:, elev_indexs,:]
+        tb_ozenith = tb_ozenith[:,:, np.asarray(oz_freqs_idxs)].squeeze()
+
+        if len(tb_ozenith.shape) == 2:
+            tb_ozenith = tb_ozenith[np.newaxis,:,:]
+
+        tb_ozenith = np.reshape(tb_ozenith, (tb_ozenith.shape[0], tb_ozenith.shape[1]*tb_ozenith.shape[2]))
+        tb_oz_uncert = config['zenith_uncert'][oz_freqs_idxs]
+
+        Y = np.hstack((filtered_tb_zenith, tb_ozenith))
+        tb_uncert = tb_z_uncert
+
+        for i in elev_indexs:
+            tb_uncert = np.hstack((tb_uncert, tb_oz_uncert))
+    else:
+        Y = filtered_tb_zenith
+        oz_freqs = []
+        tb_uncert = tb_z_uncert
+    
+    oe_input = {}
+    # Save the retrieval inputs to a dictionary
+    oe_input["Y"] = Y
+    oe_input["p"] = p_sfcs
+    oe_input["rainflags"] = 0
+    oe_input["epoch_times"] = epoch_times
+    oe_input["dt_times"] = dts
+    oe_input["z_freqs"] = z_freqs
+    oe_input["oz_freqs"] = oz_freqs
+    oe_input["all_elevs"] = 0
+    indexes = np.unique(elevations, return_index=True)[1]
+    oe_input["elevations_unique"] = [elevations[index] for index in sorted(indexes)]
+    oe_input["elevations"] = elevations
+    oe_input["all_freqs"] = np.concatenate((z_freqs,np.tile(oz_freqs, len(oe_input['elevations_unique'])-1)))
+    oe_input["lat"] = lat
+    oe_input["lon"] = lon
+    oe_input["alt"] = alt
+    oe_input["tb_uncert"] = tb_uncert
+    oe_input["rainflags"] = rainflags
+
+    return oe_input
+
+
+def read_Radiometrics(mwr_fn, config, date, btime, etime):
+    """
+        read_Radiometrics
+
+        This function reads Radiometrics microwave radiometer files containing
+        both zenith and off-zenith data.  It:
+            a.) Reads in the microwave radiometer data for a specific date.(if it exists)
+            b.) Stores the needed fields for retrieving the thermodynamic profile.
+            c.) Uses the VIP config dictionary to develop the Y vector.
+            d.) Saves the brightness temperature uncertainities.
+
+        Parameters
+        ----------
+        mwr_fn : the path to the Radiometrics file
+        config : the config_dict returned by read VIP
+        date : the date of the retrieval time in YYYYMMDD format.
+        btime : a string of the time that indicates the beginning sample to be retrieved.
+        etime : a string of the time that indicates the end sample to be retrieved.
+
+        Returns
+        -------
+        oe_input : a dictionary containing the variables from the microwave radiometer file 
+                   needed for the OE equation to work.
+    """
+    mwr_file = Dataset(mwr_fn, 'r')
+
+    # Load in the time fields
+    #times = mwr_file.variables['time'][:]
+    epoch_times = mwr_file.variables['time_since_19700101'][:]
+    dts = num2date(epoch_times, 'seconds since 1970-01-01 00:00:00+00:00')
+
+    # Find the bounds for the time frame we want to retrieve from.
+    print date+etime
+    start_dt = datetime.strptime(date + btime, '%Y%m%d%H%M')
+    end_dt = datetime.strptime(date + etime, '%Y%m%d%H%M')
+    start_dt = date2num(start_dt, 'seconds since 1970-01-01 00:00:00+00:00')
+    end_dt = date2num(end_dt, 'seconds since 1970-01-01 00:00:00+00:00')
+    idx = np.where((start_dt < epoch_times) & (end_dt > epoch_times))[0]
+    times = mwr_file.variables['time'][:]
+    #idx = np.arange(0, 7, 1)
+    #print "MWRoe is edited here and is using a hard-coded time index value here of 55."
+    #idx = np.array([55])
+    
+    # Try to ensure that a sample gets retrieved.
+    if len(idx) == 0:
+        end_dt = start_dt + (60*15)
+        print "MWRoe was unable to find a spectra within the requested time frame to retrieve on."
+        print "Setting the end time to the requested start time + 15 minutes to search for a sample..."
+        idx = np.where((start_dt < epoch_times) & (end_dt > epoch_times))[0]
+        if len(idx) == 0:
+            print "Unable to find a sample to retrieve on."
+            sys.exit()
+        print str(len(idx)) + " sample found."
+
+    dts = dts[idx]
+    epoch_times = epoch_times[idx]
+
+    # Load needed variables from current HATPRO MWR file.
+    rainflags = mwr_file.variables['flag'][idx]
+    p_sfcs = mwr_file.variables['air_pressure'][idx]
+    elevs = mwr_file.variables['elevation_angle'][:]
+    freqs = mwr_file.variables['frequencies'][:]
+    tbs = mwr_file.variables['brightness_temperature'][idx,:,:]
+
+    # Apply the correction to the MWR pressure sensor.
+    p_sfcs = config['mwr_calib_pres'][1] * p_sfcs + config['mwr_calib_pres'][0]
+    #p_sfcs[5] = p_sfcs[5] + 1
+
+    # Apply any corrections to the MWR altitude, longitude, or latitude fields
+    if config['mwr_lat'] == -1:
+        lat = mwr_file.variables['latitude'][:]
+    else:
+        lat = np.asarray([config['mwr_lat']])
+
+    if config['mwr_lon'] == -1:
+        lon = mwr_file.variables['longitude'][:]
+    else:
+        lon = np.asarray([config['mwr_lon']])
+
+    if config['mwr_alt'] == -1:
+        alt = mwr_file.variables['altitude'][:]
+    else:
+        alt = np.asarray(config['mwr_alt'])
+
+    # Isolate the indices related to the zenith observations
+    zenith_idx = np.where(abs(90-elevs)<0.1)[0]
+    tb_zenith = tbs[:,zenith_idx,:].squeeze()
+    
+    if len(tb_zenith.shape) == 1:
+        tb_zenith = tb_zenith[np.newaxis,:]
+    
+    # Load in the zenith observations
+    z_freqs_idxs = []
+    tb_z_uncert = []
+    print freqs
+    for z_freq in config['zenith_freqs']:
+        for file_freq_idx in range(len(freqs)):
+            if abs(freqs[file_freq_idx] - z_freq)<0.01:
+                z_freqs_idxs.append(file_freq_idx)
+    z_freqs = freqs[z_freqs_idxs]
+    filtered_tb_zenith = tb_zenith[:,z_freqs_idxs]
+    print filtered_tb_zenith
+    print z_freqs_idxs
+    print config['zenith_uncert']
+    tb_z_uncert = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2, 0.2]
+    print z_freqs
+    #tb_z_uncert = config['zenith_uncert'][z_freqs_idxs]
+    print z_freqs_idxs
     elevations = 90 * np.ones(len(z_freqs))
 
     # Load in the off-zenith observations (need to loop through the specified elevations)
