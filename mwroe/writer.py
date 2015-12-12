@@ -5,6 +5,7 @@ import time as tm
 from dateutil import tz
 from datetime import datetime
 import helper
+import pytz
 
 def constructOutputFN(dts, config_dict):
     '''
@@ -127,7 +128,7 @@ def save_retrieval(out_filename, output, config_dict, prior_info, input_info):
         prof_time.long_name = 'The approximate time(s) of the retrieved profile(s)/MWR measurement.'
         prof_time.units = 'Hours,Minutes UTC'
         base_time.long_name = 'Epoch time'
-        base_time.units = 'seconds since 1970/01/01 00:00:00+00:00 UTC'
+        base_time.units = 'seconds since 1970/01/01 00:00:00-00:00 UTC'
         time_offset.long_name = 'Time offset from base-time'
         time_offset.units = 's'
         hour.long_name = 'Time'
@@ -304,12 +305,18 @@ def save_retrieval(out_filename, output, config_dict, prior_info, input_info):
     utc_zone = tz.gettz('UTC')
 
     # Get base (epoch) time.
-    base_tm_ob = input_info['dt_times'][0].replace(tzinfo=utc_zone)
-    epoch_time = long(date2num(base_tm_ob,'seconds since 1970-01-01 00:00:00+00:00'))
+    #base_tm_ob = input_info['dt_times'][0].replace(tzinfo=pytz.UTC)
+    base_tm_ob = input_info['dt_times'][0]
+    #print base_tm_ob
+    #stop
+    #epoch_time = long(date2num(base_tm_ob,'seconds since 1970-01-01 00:00:00-00:00'))
+    epoch_time = long(date2num(base_tm_ob,'seconds since 1970-01-01 00:00:00'))
 
     # Get time offset from base time.
-    toff_tm_ob = input_info['dt_times'][output['sample_index']].replace(tzinfo=utc_zone)
-    toff_time = long(date2num(toff_tm_ob,'seconds since 1970-01-01 00:00:00+00:00'))
+    #toff_tm_ob = input_info['dt_times'][output['sample_index']].replace(tzinfo=pytz.UTC)
+    toff_tm_ob = input_info['dt_times'][output['sample_index']]
+    toff_time = long(date2num(toff_tm_ob,'seconds since 1970-01-01 00:00:00-00:00'))
+    toff_time = long(date2num(toff_tm_ob,'seconds since 1970-01-01 00:00:00'))
     ep_time_offset = abs(toff_time - epoch_time)
 
     # Convert the altitude grid to km for storage consistency.
