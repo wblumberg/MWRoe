@@ -1,7 +1,7 @@
 MWRoe
 =====
 
-Copyright 2014 Greg Blumberg
+Copyright 2015 Greg Blumberg
 
 Optimal estimation retrieval for microwave radiometers.
 
