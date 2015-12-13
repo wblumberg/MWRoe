@@ -2,6 +2,38 @@ import math
 import numpy as np
 import writer
 import forwardmodel
+from datetime import datetime, timedelta
+
+def average_spectra(config, oe_inputs):
+    tres = config['tres']
+    td = tres*30
+    epoch_times = oe_inputs['epoch_times']
+    center = epoch_times[0] + td
+    Ys = []
+    Ps = []
+    Dts = []
+    Ep = []
+    Rain = []
+    while center <= epoch_times[-1]:
+        idx = np.where((epoch_times >= center - td) & (epoch_times <= center + td))[0]
+        new_Y = np.mean(oe_inputs['Y'][idx,:], axis=0)
+        new_p = np.mean(oe_inputs['p'][idx])
+        Ep.append(center)
+        Dts.append(datetime.utcfromtimestamp(center))
+        Ps.append(new_p)
+        Ys.append(new_Y)
+        if np.sum(oe_inputs['rainflags']) > 0:
+            Rain.append(1)
+        else:
+            Rain.append(0)
+        center = center + 2*td
+    print "Spectral averaging reduced the number of spectra from: " + str(len(oe_inputs['Y'])) + ' to ' + str(len(Ys))
+    oe_inputs['dt_times'] = np.asarray(Dts)
+    oe_inputs['Y'] = np.asarray(Ys)
+    oe_inputs['rainflags'] = np.asarray(Rain)
+    oe_inputs['p'] = np.asarray(Ps)
+    oe_inputs['epoch_times'] = np.asarray(Ep)    
+    return oe_inputs
 
 def getProfilePresRH(alt, T_z, Q_z, sfc_pres):
     '''

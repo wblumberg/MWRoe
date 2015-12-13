@@ -672,7 +672,6 @@ def read_HATPRO(mwr_fn, config, date, btime, etime):
     dts = num2date(epoch_times, 'seconds since 1970-01-01 00:00:00+00:00')
 
     # Find the bounds for the time frame we want to retrieve from.
-    print date+etime
     start_dt = datetime.strptime(date + btime, '%Y%m%d%H%M')
     end_dt = datetime.strptime(date + etime, '%Y%m%d%H%M')
     start_dt = date2num(start_dt, 'seconds since 1970-01-01 00:00:00+00:00')

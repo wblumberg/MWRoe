@@ -57,6 +57,10 @@ oe_inputs = reader.read_mwr_data(config, date, btime, etime)
 cbh, cloud_flag = reader.read_vceil_data(config, date, oe_inputs['epoch_times'])
 Xa, Sa, alt, prior_info = reader.constructPrior(prior_filename, config)
 
+# Perform spectral averaging if it is required.
+if config['tres'] != 0:
+    oe_inputs = helper.average_spectra(config, oe_inputs)
+
 # Write the MonoRTM Config and Freqs files
 monortm_config_file = writer.writeMonoRTMConfig(alt/1000., config)
 
