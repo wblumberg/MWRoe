@@ -96,20 +96,23 @@ for samp_idx in range(len(oe_inputs['p'])):
     i = 0
 
     # Read in brightness temperature and frequency offset data
-#    offsets = reader.read_offset_data(config, oe_inputs['dt_times'][samp_idx], oe_inputs, method='interp')
-    offsets = {} 
-    print 'HARD CODED OFFSETS TO BE 0'
-    offsets['B'] = np.zeros((52, 52))
-    #print offsets['z_freq_offsets']
-    offsets['all_tb_offsets'] = np.zeros(22)
-    offsets['z_freq_offsets'] = np.zeros(22)
-    offsets['oz_freq_offsets'] = np.asarray([])#np.zeros(3)
-    print Y.shape
+    # IN THE FUTURE, THE DIFFERENT COMBINATIONS OF OFFSETS SHOULD BE MORE FLEXIBLE.  THIS IS KIND OF HACKED TOGETHER
+    if np.sum(config['tb_offsets']) != 0 and np.sum(config['freq_offsets']) != 0:
+        print "Using a file that contains the brightness temperature and frequency offsets..."
+        offsets = reader.read_offset_data(config, oe_inputs['dt_times'][samp_idx], oe_inputs, method='interp')
+    else:
+        print "Using no offsets at all...this part also assumes that only zenith observations are used."
+        # This part of the code was added to run PECAN MWR data when I don't have any offset information available.
+        offsets = {} 
+        offsets['B'] = np.zeros((52, 52))
+        offsets['all_tb_offsets'] = np.zeros(Y.shape[0])
+        offsets['z_freq_offsets'] = np.zeros(Y.shape[0])
+        offsets['oz_freq_offsets'] = np.asarray([])#np.zeros(3)
+    
     monortm_freqs_files = writer.writeMonoRTMFreqs(oe_inputs, config, offsets)
  
     # Make the S_ob matrix that describes the MWR random error (forward model error to be added later)d
     S_y = np.matrix(np.diag(np.power(oe_inputs['tb_uncert'],2)))
-    print S_y.shape
     
     # Build arrays used to save the results from each iteration.
     conv_norms = np.zeros(1 + config['max_iterations'])

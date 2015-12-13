@@ -129,7 +129,11 @@ def readVIP(vip_fn):
     vip_string = '\n'.join(vip_string)
 
     config_dict = {}    
-    
+   
+    # Get the spectral averaging interval in minutes from the VIP file.
+    var = findVIPVariable('tres', vip_string)
+    config_dict['tres'] = int(var)
+ 
     ############################################################################
     #
     #   VIP information about zenith obs to be used in the retrieval
@@ -438,10 +442,7 @@ def read_offset_data(config, dt_obj, oe_inputs, method='interp', extrapolate=Tru
     bias_freqs = data.variables['frequencies'][:]
 
     ob_time = date2num(dt_obj, 'seconds since 1970-01-01 00:00:00+00:00')
-    #print dt_obj
-    #print num2date(times, 'seconds since 1970-01-01 00:00:00+00:00')
-    #print np.abs(ob_time - times)
-    #stop
+    
     z_freqs = oe_inputs['z_freqs']
     z_tb_offsets = np.empty(len(z_freqs))
     z_freq_offsets = np.empty(len(z_freqs))
@@ -473,8 +474,6 @@ def read_offset_data(config, dt_obj, oe_inputs, method='interp', extrapolate=Tru
         z_freq_offsets[i] = offset_f
         z_tb_sigma[i] = tb_u
         z_freq_sigma[i] = uncert_f
-    #z_tb_offsets[:] = data.variables['delta_tb'][56,:]
-    #z_freq_offsets[:] = data.variables['delta_f'][:]
 
     offsets = {}
     #offsets['z_tb_offsets'] = z_tb_offsets
@@ -915,15 +914,11 @@ def read_Radiometrics(mwr_fn, config, date, btime, etime):
         for file_freq_idx in range(len(freqs)):
             if abs(freqs[file_freq_idx] - z_freq)<0.01:
                 z_freqs_idxs.append(file_freq_idx)
+                idx = np.where(z_freq == config['zenith_freqs'])[0]
+                tb_z_uncert.append(config['zenith_uncert'][idx][0])
+    tb_z_uncert = np.asarray(tb_z_uncert, dtype=float)
     z_freqs = freqs[z_freqs_idxs]
     filtered_tb_zenith = tb_zenith[:,z_freqs_idxs]
-    print filtered_tb_zenith
-    print z_freqs_idxs
-    print config['zenith_uncert']
-    tb_z_uncert = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.2, 0.2]
-    print z_freqs
-    #tb_z_uncert = config['zenith_uncert'][z_freqs_idxs]
-    print z_freqs_idxs
     elevations = 90 * np.ones(len(z_freqs))
 
     # Load in the off-zenith observations (need to loop through the specified elevations)
