@@ -5,7 +5,7 @@ Copyright 2016 Greg Blumberg
 
 Optimal estimation retrieval for microwave radiometers.
 
-This is code that performs the optimal estimation retrieval on microwave radiometerd data.
+This is code that performs the optimal estimation retrieval on microwave radiometer data.
 
 It accepts in a prior file, a VIP file, the beginning time and end time.
 
