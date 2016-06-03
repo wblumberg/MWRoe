@@ -10,3 +10,7 @@ This is code that performs the optimal estimation retrieval on microwave radiome
 It accepts in a prior file, a VIP file, the beginning time and end time.
 
 This code is to be used on the CLAMPS trailer to retrieve thermodynamic profiles and LWP from the HATPRO.
+
+Reference:
+
+DOI: http://dx.doi.org/10.1175/JAMC-D-15-0005.1
