@@ -6,6 +6,7 @@
 #    strings in the VIP structure.  The values on the right of the = are the values
 #
 tag     	= fkb	; String for temporary files / directories
+tres      = 5   ; disjoint averaging interval (minutes)
 #
 # This section defines the data directories, file types, and more
 mwr_type       = 1		; 1 - HATPRO Level C0, 2 - Radiometrics
