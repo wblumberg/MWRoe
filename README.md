@@ -13,6 +13,10 @@ This code is to be used on the CLAMPS trailer to retrieve thermodynamic profiles
 
 Some additional code not provided here is required to run this program.
 
+Requires:
+1.) netCDF4-python
+2.) Numpy
+
 Reference:
 
 DOI: http://dx.doi.org/10.1175/JAMC-D-15-0005.1
